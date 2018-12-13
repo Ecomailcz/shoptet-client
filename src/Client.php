@@ -18,9 +18,57 @@ class Client
      */
     private $access_token;
 
-    public function __construct(string $access_token)
+    /**
+     * Shoptet ID
+     *
+     * @var string
+     */
+    private $shoptetId;
+
+    public function __construct(string $access_token, string $shoptetId)
     {
         $this->access_token = $access_token;
+        $this->shoptetId = $shoptetId;
+    }
+
+    public function getOauthAccessToken(string $clientId, string $redirectUri)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+
+        $data = [
+            'code' => $this->access_token,
+            'grant_type' => 'authorization_code',
+            'client_id' => $clientId,
+            'redirect_uri' => $redirectUri,
+            'scope' => 'api',
+        ];
+
+        curl_setopt($ch, CURLOPT_URL, 'https://' . $this->shoptetId . '.myshoptet.com/action/ApiOAuthServer/token');
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Ecomail.cz Shoptet client (https://github.com/Ecomailcz/shoptet-client)');
+
+        $output = curl_exec($ch);
+        $result = json_decode($output, true);
+
+        return $result;
+    }
+
+    public function getAccessToken(string $oauthAccessToken)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_URL, 'https://' . $this->shoptetId . '.myshoptet.com/action/ApiOAuthServer/getAccessToken');
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $oauthAccessToken]);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Ecomail.cz Shoptet client (https://github.com/Ecomailcz/shoptet-client)');
+
+        $output = curl_exec($ch);
+        $result = json_decode($output, true);
+
+        return $result;
     }
 
     /**
