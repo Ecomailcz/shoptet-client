@@ -62,7 +62,7 @@ class Client
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_URL, 'https://' . $this->shoptetId . '.myshoptet.com/action/ApiOAuthServer/getAccessToken');
-        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $oauthAccessToken]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $oauthAccessToken]);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Ecomail.cz Shoptet client (https://github.com/Ecomailcz/shoptet-client)');
 
         $output = curl_exec($ch);
@@ -91,7 +91,8 @@ class Client
         
         curl_setopt($ch, CURLOPT_HTTPAUTH, TRUE);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
-			'Shoptet-Access-Token: ' . $this->access_token
+			'Shoptet-Access-Token: ' . $this->access_token,
+            'Content-Type: application/vnd.shoptet.v1.0',
 		]);
 
         curl_setopt($ch, CURLOPT_URL, 'https://api.myshoptet.com/' . $url);
