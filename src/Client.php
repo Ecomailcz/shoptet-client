@@ -118,11 +118,9 @@ class Client
             elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 401) {
                 throw new EcomailShoptetInvalidAuthorization($this->user, $this->password, $url);
             } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 400) {
-                if ($result['success'] === 'false') {
-                    foreach ($result['results'] as $response) {
-                        foreach ($response['errors'] as $error) {
-                            throw new EcomailShoptetRequestError($error['message']);
-                        }
+                if (isset($result['errors']) && sizeof($result['errors']) > 0) {
+                    foreach ($result['errors'] as $error) {
+                        throw new EcomailShoptetRequestError($error['message']);
                     }
 
                 }
