@@ -117,7 +117,7 @@ class Client
             }
             // Check authorization
             elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 401) {
-                throw new EcomailShoptetInvalidAuthorization($this->user, $this->password, $url);
+                throw new EcomailShoptetInvalidAuthorization($this->access_token);
             } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 400) {
                 if (isset($result['errors']) && sizeof($result['errors']) > 0) {
                     foreach ($result['errors'] as $error) {
