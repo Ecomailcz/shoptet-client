@@ -56,7 +56,7 @@ class Client
         return $result;
     }
 
-    public function getAccessToken(string $oauthAccessToken)
+    public function getApiToken(string $oauthAccessToken)
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
