@@ -90,10 +90,14 @@ class Client
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         
         curl_setopt($ch, CURLOPT_HTTPAUTH, TRUE);
-		curl_setopt($ch, CURLOPT_HTTPHEADER, [
-			'Shoptet-Access-Token: ' . $this->access_token,
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Shoptet-Access-Token: ' . $this->access_token,
             'Content-Type: application/vnd.shoptet.v1.0',
-		]);
+        ]);
+
+        if (count($queryParameters) !== 0) {
+            $url .= '?' . http_build_query($queryParameters);
+        }
 
         curl_setopt($ch, CURLOPT_URL, 'https://api.myshoptet.com/' . $url);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $httpMethod);
@@ -101,10 +105,6 @@ class Client
 
         if (count($postFields) !== 0) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postFields));
-        }
-
-        if (count($queryParameters) !== 0) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($queryParameters));
         }
 
         $output = curl_exec($ch);
