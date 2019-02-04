@@ -7,6 +7,7 @@ use EcomailShoptet\Exception\EcomailShoptetInvalidAuthorization;
 use EcomailShoptet\Exception\EcomailShoptetNoEvidenceResult;
 use EcomailShoptet\Exception\EcomailShoptetRequestError;
 use EcomailShoptet\Exception\EcomailShoptetSaveFailed;
+use EcomailShoptet\Exception\EcomailShoptetNotFound;
 
 class Client
 {
