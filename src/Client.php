@@ -8,6 +8,7 @@ use EcomailShoptet\Exception\EcomailShoptetNoEvidenceResult;
 use EcomailShoptet\Exception\EcomailShoptetRequestError;
 use EcomailShoptet\Exception\EcomailShoptetSaveFailed;
 use EcomailShoptet\Exception\EcomailShoptetNotFound;
+use Exception;
 
 class Client
 {
@@ -52,6 +53,11 @@ class Client
         curl_setopt($ch, CURLOPT_USERAGENT, 'Ecomail.cz Shoptet client (https://github.com/Ecomailcz/shoptet-client)');
 
         $output = curl_exec($ch);
+
+        if($output === false) {
+            throw new Exception(curl_error($ch), curl_errno($ch));
+        }
+
         $result = json_decode($output, true);
 
         return $result;
@@ -67,6 +73,11 @@ class Client
         curl_setopt($ch, CURLOPT_USERAGENT, 'Ecomail.cz Shoptet client (https://github.com/Ecomailcz/shoptet-client)');
 
         $output = curl_exec($ch);
+
+        if($output === false) {
+            throw new Exception(curl_error($ch), curl_errno($ch));
+        }
+        
         $result = json_decode($output, true);
 
         return $result;
@@ -109,6 +120,11 @@ class Client
         }
 
         $output = curl_exec($ch);
+
+        if($output === false) {
+            throw new Exception(curl_error($ch), curl_errno($ch));
+        }
+
         $result = json_decode($output, true);
 
         if (curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200 && curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 201) {
