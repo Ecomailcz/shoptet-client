@@ -8,6 +8,7 @@ use EcomailShoptet\Exception\EcomailShoptetNoEvidenceResult;
 use EcomailShoptet\Exception\EcomailShoptetRequestError;
 use EcomailShoptet\Exception\EcomailShoptetSaveFailed;
 use EcomailShoptet\Exception\EcomailShoptetNotFound;
+use EcomailShoptet\Exception\EcomailShoptetPageNotFound;
 use Exception;
 
 class Client
@@ -138,6 +139,9 @@ class Client
             } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 400) {
                 if (isset($result['errors']) && sizeof($result['errors']) > 0) {
                     foreach ($result['errors'] as $error) {
+                        if(strpos($error['message'], 'max page is') !== false) {
+                            throw new EcomailShoptetPageNotFound();
+                        }
                         throw new EcomailShoptetRequestError($error['message']);
                     }
 
