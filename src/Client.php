@@ -101,6 +101,8 @@ class Client
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); 
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         
         curl_setopt($ch, CURLOPT_HTTPAUTH, TRUE);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
