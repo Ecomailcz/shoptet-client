@@ -34,7 +34,7 @@ class Client
         $this->shoptetId = $shoptetId;
     }
 
-    public function getOauthAccessToken(string $clientId, string $redirectUri)
+    public function getOauthAccessToken(string $clientId, string $redirectUri, ?string $clientSecret = null)
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
@@ -47,6 +47,10 @@ class Client
             'redirect_uri' => $redirectUri,
             'scope' => 'api',
         ];
+
+        if ($clientSecret) {
+            $data['client_secret'] = $clientSecret;
+        }
 
         curl_setopt($ch, CURLOPT_URL, 'https://' . $this->shoptetId . '.myshoptet.com/action/ApiOAuthServer/token');
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
