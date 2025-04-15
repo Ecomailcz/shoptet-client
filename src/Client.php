@@ -9,7 +9,6 @@ use EcomailShoptet\Exception\EcomailShoptetRequestError;
 use EcomailShoptet\Exception\EcomailShoptetSaveFailed;
 use EcomailShoptet\Exception\EcomailShoptetNotFound;
 use EcomailShoptet\Exception\EcomailShoptetPageNotFound;
-use EcomailShoptet\Exception\EcomailShoptetRateLimitExceeded;
 use Exception;
 
 class Client
@@ -106,10 +105,9 @@ class Client
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); 
         curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        curl_setopt($ch, CURLOPT_HEADER, TRUE);
-
+        
         curl_setopt($ch, CURLOPT_HTTPAUTH, TRUE);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Shoptet-Access-Token: ' . $this->access_token,
@@ -134,31 +132,16 @@ class Client
             throw new Exception(curl_error($ch), curl_errno($ch));
         }
 
-        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $headers = substr($output, 0, $headerSize);
-        $body = substr($output, $headerSize);
-
-        // Parse headers into associative array
-        $headerLines = explode("\n", $headers);
-        $parsedHeaders = [];
-        foreach ($headerLines as $line) {
-            if (strpos($line, ':') !== false) {
-                list($key, $value) = explode(':', $line, 2);
-                $parsedHeaders[trim($key)] = trim($value);
-            }
-        }
-
-        $result = json_decode($body, true);
+        $result = json_decode($output, true);
 
         if (curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200 && curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 201) {
+
             if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 404) {
                 throw new EcomailShoptetNotFound();
             }
             // Check authorization
             elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 401) {
                 throw new EcomailShoptetInvalidAuthorization($this->access_token);
-            } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 429) {
-                throw new EcomailShoptetRateLimitExceeded($parsedHeaders);
             } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 400) {
                 if (isset($result['errors']) && sizeof($result['errors']) > 0) {
                     foreach ($result['errors'] as $error) {
@@ -167,19 +150,21 @@ class Client
                         }
                         throw new EcomailShoptetRequestError($error['message']);
                     }
+
                 }
+
             }
         }
 
         if (!$result) {
-            return ['data' => [], 'headers' => $parsedHeaders];
+            return [];
         }
 
         if (array_key_exists('success', $result) && !$result['success']) {
             throw new EcomailShoptetAnotherError($result);
         }
 
-        return ['data' => $result, 'headers' => $parsedHeaders];
+        return $result;
     }
 
 }
