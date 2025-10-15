@@ -158,7 +158,7 @@ class Client
             elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 401) {
                 throw new EcomailShoptetInvalidAuthorization($this->access_token);
             } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 429) {
-                throw new EcomailShoptetRateLimitExceeded(json_encode(['data' => $result, 'headers' => $parsedHeaders]));
+                throw new EcomailShoptetRateLimitExceeded(json_encode(['data' => $result, 'headers' => $parsedHeaders, 'raw_headers' => $headers]));
             } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 400) {
                 if (isset($result['errors']) && sizeof($result['errors']) > 0) {
                     foreach ($result['errors'] as $error) {
