@@ -3,6 +3,7 @@
 namespace EcomailShoptet;
 
 use EcomailShoptet\Exception\EcomailShoptetAnotherError;
+use EcomailShoptet\Exception\EcomailShoptetConnectionFailed;
 use EcomailShoptet\Exception\EcomailShoptetInvalidAuthorization;
 use EcomailShoptet\Exception\EcomailShoptetNoEvidenceResult;
 use EcomailShoptet\Exception\EcomailShoptetRequestError;
@@ -96,13 +97,79 @@ class Client
      * @param string[] $queryParameters
      * @return mixed[]
      * @throws \EcomailShoptet\Exception\EcomailShoptetAnotherError
+     * @throws \EcomailShoptet\Exception\EcomailShoptetConnectionFailed
      * @throws \EcomailShoptet\Exception\EcomailShoptetNotFound
      * @throws \EcomailShoptet\Exception\EcomailShoptetInvalidAuthorization
      * @throws \EcomailShoptet\Exception\EcomailShoptetRequestError
      */
     public function makeRequest(string $httpMethod, string $url, array $postFields = [], array $queryParameters = []): array
     {
-        /** @var resource $ch */
+        $ch = $this->createApiRequest($httpMethod, $url, $postFields, $queryParameters);
+        $output = $this->executeApiRequest($ch);
+
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $headers = substr($output, 0, $headerSize);
+        $body = substr($output, $headerSize);
+        $parsedHeaders = ShoptetResponse::parseHeaders($headers);
+
+        $result = json_decode($body, true);
+
+        if (curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200 && curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 201) {
+            if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 404) {
+                throw new EcomailShoptetNotFound();
+            }
+            // Check authorization
+            elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 401) {
+                throw new EcomailShoptetInvalidAuthorization();
+            } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 429) {
+                throw new EcomailShoptetRateLimitExceeded(json_encode(['data' => $result, 'headers' => $parsedHeaders, 'raw_headers' => $headers]));
+            } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 400) {
+                if (isset($result['errors']) && sizeof($result['errors']) > 0) {
+                    foreach ($result['errors'] as $error) {
+                        if(strpos($error['message'], 'max page is') !== false) {
+                            throw new EcomailShoptetPageNotFound();
+                        }
+                        throw new EcomailShoptetRequestError($error['message']);
+                    }
+                }
+            }
+        }
+
+        if (!$result) {
+            return ['data' => [], 'headers' => $parsedHeaders];
+        }
+
+        if (array_key_exists('success', $result) && !$result['success']) {
+            throw new EcomailShoptetAnotherError($result);
+        }
+
+        return ['data' => $result, 'headers' => $parsedHeaders];
+    }
+
+    /**
+     * @param mixed[] $postFields
+     * @param string[] $queryParameters
+     * @throws \EcomailShoptet\Exception\EcomailShoptetConnectionFailed
+     */
+    public function sendRequest(string $httpMethod, string $url, array $postFields = [], array $queryParameters = []): ShoptetResponse
+    {
+        $ch = $this->createApiRequest($httpMethod, $url, $postFields, $queryParameters);
+        $output = $this->executeApiRequest($ch);
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+
+        return ShoptetResponse::fromRaw(
+            curl_getinfo($ch, CURLINFO_HTTP_CODE),
+            substr($output, 0, $headerSize),
+            substr($output, $headerSize),
+        );
+    }
+
+    /**
+     * @param mixed[] $postFields
+     * @param string[] $queryParameters
+     */
+    private function createApiRequest(string $httpMethod, string $url, array $postFields, array $queryParameters): \CurlHandle
+    {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
@@ -128,58 +195,21 @@ class Client
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postFields));
         }
 
+        return $ch;
+    }
+
+    /**
+     * @throws \EcomailShoptet\Exception\EcomailShoptetConnectionFailed
+     */
+    private function executeApiRequest(\CurlHandle $ch): string
+    {
         $output = curl_exec($ch);
 
-        if($output === false) {
-            throw new Exception(curl_error($ch), curl_errno($ch));
+        if ($output === false) {
+            throw new EcomailShoptetConnectionFailed(curl_error($ch), curl_errno($ch));
         }
 
-        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $headers = substr($output, 0, $headerSize);
-        $body = substr($output, $headerSize);
-
-        // Parse headers into associative array
-        $headerLines = explode("\n", $headers);
-        $parsedHeaders = [];
-        foreach ($headerLines as $line) {
-            if (strpos($line, ':') !== false) {
-                list($key, $value) = explode(':', $line, 2);
-                $parsedHeaders[trim($key)] = trim($value);
-            }
-        }
-
-        $result = json_decode($body, true);
-
-        if (curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200 && curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 201) {
-            if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 404) {
-                throw new EcomailShoptetNotFound();
-            }
-            // Check authorization
-            elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 401) {
-                throw new EcomailShoptetInvalidAuthorization($this->access_token);
-            } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 429) {
-                throw new EcomailShoptetRateLimitExceeded(json_encode(['data' => $result, 'headers' => $parsedHeaders, 'raw_headers' => $headers]));
-            } elseif (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 400) {
-                if (isset($result['errors']) && sizeof($result['errors']) > 0) {
-                    foreach ($result['errors'] as $error) {
-                        if(strpos($error['message'], 'max page is') !== false) {
-                            throw new EcomailShoptetPageNotFound();
-                        }
-                        throw new EcomailShoptetRequestError($error['message']);
-                    }
-                }
-            }
-        }
-
-        if (!$result) {
-            return ['data' => [], 'headers' => $parsedHeaders];
-        }
-
-        if (array_key_exists('success', $result) && !$result['success']) {
-            throw new EcomailShoptetAnotherError($result);
-        }
-
-        return ['data' => $result, 'headers' => $parsedHeaders];
+        return $output;
     }
 
 }
